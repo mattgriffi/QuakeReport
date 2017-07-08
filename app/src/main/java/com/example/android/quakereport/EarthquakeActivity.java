@@ -18,18 +18,17 @@ package com.example.android.quakereport;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
-import java.io.IOException;
 import java.util.List;
 
-public class EarthquakeActivity extends AppCompatActivity {
+public class EarthquakeActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<List<Earthquake>> {
 
     public static final String LOG_TAG = EarthquakeActivity.class.getName();
     private static final String earthquakeURL = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&eventtype=earthquake&orderby=time&minmag=6&limit=10";
@@ -40,26 +39,21 @@ public class EarthquakeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.earthquake_activity);
 
-        EarthquakeAsyncTask earthquakeAsyncTask = new EarthquakeAsyncTask();
-        earthquakeAsyncTask.execute(earthquakeURL);
+        getSupportLoaderManager().initLoader(0, null, this);
     }
 
-    private AdapterView.OnItemClickListener getOnItemClickListener() {
-        return new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                PackageManager packageManager = getPackageManager();
-                String url = earthquakes.get(position).getUrl();
-
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setData(Uri.parse(url));
-
-                if (intent.resolveActivity(packageManager) != null) {
-                    startActivity(intent);
-                }
-            }
-        };
+    @Override
+    public Loader<List<Earthquake>> onCreateLoader(int id, Bundle args) {
+        return new EarthquakeLoader(this, earthquakeURL);
     }
+
+    @Override
+    public void onLoadFinished(Loader<List<Earthquake>> loader, List<Earthquake> data) {
+        updateUI(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<List<Earthquake>> loader) {}
 
     private void updateUI(List<Earthquake> earthquakesList) {
         earthquakes = earthquakesList;
@@ -78,35 +72,21 @@ public class EarthquakeActivity extends AppCompatActivity {
 
     }
 
-    private class EarthquakeAsyncTask extends AsyncTask<String, Void, List<Earthquake>> {
-        @Override
-        protected List<Earthquake> doInBackground(String... urls) {
+    private AdapterView.OnItemClickListener getOnItemClickListener() {
+        return new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                PackageManager packageManager = getPackageManager();
+                String url = earthquakes.get(position).getUrl();
 
-            List<Earthquake> earthquakeList = null;
-            String jsonResponse = null;
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse(url));
 
-            if (urls == null || urls[0] == null) {
-                return null;
+                if (intent.resolveActivity(packageManager) != null) {
+                    startActivity(intent);
+                }
             }
-
-            String url = urls[0];
-
-            try {
-                jsonResponse = QueryUtils.makeHttpRequest(url);
-            } catch (IOException exception) {
-                Log.e(LOG_TAG, "Error making HTTP request", exception);
-            }
-
-            earthquakeList = QueryUtils.extractEarthquakes(jsonResponse);
-
-            return earthquakeList;
-        }
-
-        @Override
-        protected void onPostExecute(List<Earthquake> earthquakesList) {
-            updateUI(earthquakesList);
-        }
+        };
     }
-
 
 }
