@@ -44,7 +44,6 @@ public class EarthquakeLoader extends AsyncTaskLoader<List<Earthquake>> {
 
         earthquakeList = QueryUtils.extractEarthquakes(jsonResponse);
 
-
         return earthquakeList;
     }
 
